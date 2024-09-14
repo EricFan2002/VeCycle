@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List New Item</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%); /* 设置渐变背景色 */
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .term-row {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-spacing {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container form-container">
+        <h2 class="mb-4 text-center">List a New Item</h2>
+        <form id="newItemForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="name" class="form-label">Item Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="price" class="form-label">Price</label>
+                <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+            </div>
+            <div class="mb-3">
+                <label for="file" class="form-label">Image</label>
+                <input type="file" class="form-control" id="file" name="file" accept="image/*" required
+                    onchange="previewImage(this);">
+                <img id="imagePreview" src="#" alt="Image preview" />
+            </div>
+            <div id="termsContainer">
+                <h4 class="mb-3">Terms and Conditions</h4>
+                <!-- Terms will be dynamically added here -->
+            </div>
+            
+            <!-- 按钮组，放在同一行，并保持一定距离 -->
+            <div class="button-group">
+                <button class="btn btn-secondary btn-spacing" type="button" onclick="goBack()">Go Back</button>
+                <button type="button" class="btn btn-primary btn-spacing" onclick="addTerm()">Add Term</button>
+                <button type="submit" class="btn btn-primary">List Item</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let termCount = 0;
+
+        function goBack() {
+            window.location.href = '/public/list.html';  // 返回list.html
+        }
+
+        function addTerm() {
+            const termsContainer = document.getElementById('termsContainer');
+            const termDiv = document.createElement('div');
+            termDiv.className = 'term-row mb-3';
+            termDiv.innerHTML = `
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="termName[]" placeholder="Term Name" required>
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="termConditions[]" placeholder="Conditions" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" class="form-control" name="termCompensation[]" placeholder="Compensation %" step="0.1" min="0" max="100" required>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger" onclick="removeTerm(this)"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            `;
+            termsContainer.appendChild(termDiv);
+            termCount++;
+        }
+
+        function removeTerm(button) {
+            button.closest('.term-row').remove();
+            termCount--;
+        }
+
+        function previewImage(input) {
+            const preview = document.getElementById('imagePreview');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.src = "#";
+                preview.style.display = 'none';
+            }
+        }
+
+        document.getElementById('newItemForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            // Add userID to formData
+            formData.append('userID', localStorage.getItem('userId'));
+
+            // Prepare terms data
+            const terms = [];
+            const termNames = formData.getAll('termName[]');
+            const termConditions = formData.getAll('termConditions[]');
+            const termCompensations = formData.getAll('termCompensation[]');
+
+            for (let i = 0; i < termNames.length; i++) {
+                terms.push({
+                    termName: termNames[i],
+                    termConditions: termConditions[i],
+                    termCompensation: parseFloat(termCompensations[i])
+                });
+            }
+
+            formData.set('terms', JSON.stringify(terms));
+
+            // Remove individual term fields
+            formData.delete('termName[]');
+            formData.delete('termConditions[]');
+            formData.delete('termCompensation[]');
+
+            fetch('/list', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.itemID) {
+                        alert('Item listed successfully! Item ID: ' + data.itemID);
+                        window.location.href = '/public/list.html'; // Redirect to the main listing page
+                    } else {
+                        alert('Error listing item: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while listing the item. Please try again.');
+                });
+        });
+
+        // Add an initial term row
+        addTerm();
+    </script>
+</body>
+
+</html>

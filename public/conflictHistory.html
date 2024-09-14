@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Conflicts</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        }
+
+        .conflict-card {
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .conflict-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .user-role {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .status-badge {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 10px;
+        }
+
+        .status-unsolved {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .status-solved {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        #searchInput {
+            margin-bottom: 20px;
+            height: 50px;
+            border-radius: 5px;
+        }
+
+        .form-select {
+            height: 50px;
+            border-radius: 5px;
+        }
+
+        .navbar {
+            background-color: #007bff;
+        }
+
+        .navbar a {
+            color: white !important;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .navbar-brand img {
+            width: 50px;
+            height: 50px;
+        }
+
+        .navbar-brand span {
+            margin-left: 10px;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .container {
+            padding-top: 20px;
+        }
+
+        .form-control::placeholder {
+            color: #aaa;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <!-- Logo and VeCycle combined into one clickable brand element -->
+            <a class="navbar-brand" href="/public/list.html">
+                <img src="logo.png.png" alt="Logo">
+                <span>VeCyCle</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <h1 class="mb-4">All Conflicts</h1>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search conflicts...">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <select id="sortSelect" class="form-select">
+                    <option value="status-recent">Status then Recent</option>
+                    <option value="recent">Most Recent</option>
+                    <option value="oldest">Oldest</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="statusFilter" class="form-select">
+                    <option value="all">All Statuses</option>
+                    <option value="0">Unsolved</option>
+                    <option value="1">Solved</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="roleFilter" class="form-select">
+                    <option value="all">All Roles</option>
+                    <option value="buyer">Buyer</option>
+                    <option value="seller">Seller</option>
+                    <option value="judge">Judge</option>
+                </select>
+            </div>
+        </div>
+        <div id="conflictsContainer"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <script>
+        let allConflicts = [];
+        let fuse;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert('Please log in first.');
+                window.location.href = '/public/login.html';
+                return;
+            }
+
+            fetch(`/myConflicts?userID=${userId}`)
+                .then(response => response.json())
+                .then(conflicts => {
+                    allConflicts = conflicts;
+                    fuse = new Fuse(allConflicts, {
+                        keys: ['itemName', 'itemID', 'userRole'],
+                        threshold: 0.3
+                    });
+                    renderConflicts();
+                })
+                .catch(error => {
+                    console.error('Error fetching conflicts:', error);
+                    alert('An error occurred while fetching conflicts. Please try again.');
+                });
+
+            document.getElementById('searchInput').addEventListener('input', renderConflicts);
+            document.getElementById('sortSelect').addEventListener('change', renderConflicts);
+            document.getElementById('statusFilter').addEventListener('change', renderConflicts);
+            document.getElementById('roleFilter').addEventListener('change', renderConflicts);
+        });
+
+        function renderConflicts() {
+            const container = document.getElementById('conflictsContainer');
+            const searchQuery = document.getElementById('searchInput').value;
+            const sortMethod = document.getElementById('sortSelect').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const roleFilter = document.getElementById('roleFilter').value;
+
+            let filteredConflicts = allConflicts;
+
+            // Apply search
+            if (searchQuery) {
+                const results = fuse.search(searchQuery);
+                filteredConflicts = results.map(result => result.item);
+            }
+
+            // Apply filters
+            filteredConflicts = filteredConflicts.filter(conflict => {
+                return (statusFilter === 'all' || conflict.disputeStatus === statusFilter) &&
+                       (roleFilter === 'all' || conflict.userRole === roleFilter);
+            });
+
+            // Apply sorting
+            filteredConflicts.sort((a, b) => {
+                switch (sortMethod) {
+                    case 'status-recent':
+                        if (a.disputeStatus !== b.disputeStatus) {
+                            return a.disputeStatus.localeCompare(b.disputeStatus);
+                        }
+                        return b.createdAt - a.createdAt;
+                    case 'recent':
+                        return b.createdAt - a.createdAt;
+                    case 'oldest':
+                        return a.createdAt - b.createdAt;
+                }
+            });
+
+            // Render conflicts
+            container.innerHTML = '';
+            filteredConflicts.forEach(conflict => {
+                const card = document.createElement('div');
+                card.className = 'card conflict-card';
+                const statusClass = conflict.disputeStatus === '0' ? 'status-unsolved' : 'status-solved';
+                const statusText = conflict.disputeStatus === '0' ? 'Unsolved' : 'Solved';
+                card.innerHTML = `
+                    <div class="card-header">
+                        Item: ${conflict.itemName} (ID: ${conflict.itemID})
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            Status: <span class="status-badge ${statusClass}">${statusText}</span>
+                        </h5>
+                        <p class="card-text">Your Role: <span class="user-role">${conflict.userRole}</span></p>
+                        <p class="card-text">Created: ${new Date(conflict.createdAt * 1000).toLocaleString()}</p>
+                        <a href="/public/conflict.html?itemID=${conflict.itemID}" class="btn btn-primary">View Details</a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            if (filteredConflicts.length === 0) {
+                container.innerHTML = '<p>No conflicts found.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

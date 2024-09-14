@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%); /* 设置渐变背景色 */
+            background-size: cover;
+            color: #333;
+        }
+
+        .container {
+            max-width: 960px;
+            min-height: 100vh;
+            padding-top: 30px;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            background-color: #ffffff;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        .card-body {
+            padding: 20px;
+            text-align: left;
+        }
+
+        .card-body img {
+            max-height: 300px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .card-body h5 {
+            font-weight: 700;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+            margin-top: 20px;
+            transition: transform 0.3s;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            background-color: #5a6268;
+        }
+
+        .qr-code {
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            margin-top: 20px;
+            padding: 20px;
+            transition: transform 0.3s ease;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-code img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .summary p {
+            font-size: 1rem;
+        }
+
+        .summary-total {
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: #28a745;
+        }
+
+        /* Style for Payment Options */
+        .payment-options {
+            margin-top: 20px;
+        }
+
+        .payment-option {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.3s;
+        }
+
+        .payment-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .payment-option.active {
+            background-color: #e9ecef;
+            border-color: #007bff;
+        }
+
+        .payment-icon {
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4 text-center">Payment</h1>
+        <div class="row">
+            <!-- 左侧：商品详情 -->
+            <div class="col-md-6">
+                <h4>Item Details</h4>
+                <div id="itemDetails" class="card">
+                    <!-- 商品详情会在这里展示 -->
+                </div>
+            </div>
+
+            <!-- 右侧：支付方式显示 -->
+            <div class="col-md-6">
+                <h4>Select Payment Method</h4>
+                
+                <!-- Payment Options -->
+                <div class="payment-options">
+                    <!-- QR Code Option -->
+                    <div class="payment-option active" id="qrPaymentOption">
+                        <div>Pay via QR Code</div>
+                        <i class="payment-icon bi bi-qr-code"></i>
+                    </div>
+                    
+                    <!-- Bank Transfer Option -->
+                    <div class="payment-option" id="bankTransferOption">
+                        <div>Transfer to Address</div>
+                        <i class="payment-icon bi bi-cash-stack"></i>
+                    </div>
+                </div>
+
+                <!-- QR Code Section -->
+                <div id="qrPayment" class="qr-code">
+                    <img src="QRcode.png" alt="QR Code">
+                </div>
+
+                <!-- Bank Transfer Section -->
+                <div id="bankTransfer" class="card" style="display: none;">
+                    <div class="card-body">
+                        <h5>Transfer to the following address:</h5>
+                        <p>0x762c5FF246dCc2A31a319bcC754E0d3874F8bD77</p>
+                        <p>Please make sure to include the order ID in the transfer details.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
+    </div>
+
+    <script>
+        // 获取商品ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemId = urlParams.get('id');
+
+        // 获取商品详情
+        fetch(`/itemDetail?id=${itemId}`)
+            .then(response => response.json())
+            .then(item => {
+                const itemDetailsDiv = document.getElementById('itemDetails');
+                itemDetailsDiv.innerHTML = `
+                    <div class="card-body">
+                        <img src="/${item.file}" class="card-img-top mb-3" alt="${item.name}">
+                        <h5 class="card-title">${item.name}</h5>
+                        <p class="card-text">${item.description}</p>
+                        <p class="card-text">Price: $${item.price}</p>
+                        <p class="card-text">Seller: ${item.userName}</p>
+                        <p class="card-text">Status: ${getStatusText(item.itemStatus)}</p>
+                    </div>
+                `;
+            })
+            .catch(error => console.error('Error:', error));
+
+        // 定时检查商品状态
+        const checkStatusInterval = setInterval(() => {
+            fetch(`/checkBuy?id=${itemId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Item status:", data.itemStatus); // 调试输出 itemStatus
+                    if (data.itemStatus == 2) { //2 Paied
+                        clearInterval(checkStatusInterval); // 停止轮询
+                        window.location.href = '/public/paymentSuccess.html'; // 跳转到付款成功页面
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }, 300);
+
+        function getStatusText(status) {
+            const statusTexts = ['Available', 'Pending Payment', 'Sold', 'Shipped', 'Delivered'];
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        // Toggle between payment options
+        const qrPayment = document.getElementById('qrPayment');
+        const bankTransfer = document.getElementById('bankTransfer');
+        const qrPaymentOption = document.getElementById('qrPaymentOption');
+        const bankTransferOption = document.getElementById('bankTransferOption');
+
+        qrPaymentOption.addEventListener('click', () => {
+            qrPayment.style.display = 'flex';
+            bankTransfer.style.display = 'none';
+            qrPaymentOption.classList.add('active');
+            bankTransferOption.classList.remove('active');
+        });
+
+        bankTransferOption.addEventListener('click', () => {
+            bankTransfer.style.display = 'block';
+            qrPayment.style.display = 'none';
+            bankTransferOption.classList.add('active');
+            qrPaymentOption.classList.remove('active');
+        });
+    </script>
+</body>
+
+</html>

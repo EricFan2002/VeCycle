@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+            padding: 15px; /* Adjust padding */
+            border-radius: 10px; /* Rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* Add shadow */
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* Ensure the body grows to fill the space */
+        }
+
+        .card-body .card-text {
+            flex-grow: 1; /* Push content up */
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: auto; /* Push the buttons to the bottom */
+        }
+
+        .card:hover {
+            transform: scale(1.05); /* Enlarge on hover */
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card-text {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        .card-img-top {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .btn {
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+
+        .bg-blue {
+            background-color: #007bff;
+            height: 100px;
+        }
+
+        .navbar a,
+        .navbar-text {
+            color: white !important;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand span {
+            margin-left: 10px;
+            font-size: 1.5rem;
+        }
+
+        .price-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ff5722;
+        }
+
+        .conflicts-banner {
+            background-color: #f8f9fa;
+            padding: 10px 0;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .conflicts-banner a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .conflicts-banner a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg bg-blue">
+        <div class="container-fluid">
+            <!-- Combine the logo and text into one clickable element -->
+            <a class="navbar-brand" href="javascript:location.reload()">
+                <img src="logo.png.png" alt="Logo" class="logo"> <!-- Local storage image -->
+                <span>VeCyCle</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/public/myPurchase.html">My Purchases</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/public/listNewItem.html">List New Item</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/public/mySales.html">My Sales</a>
+                    </li>
+                </ul>
+
+                <!-- Search bar layout adjustment -->
+                <form class="d-flex me-auto">
+                    <input id="searchInput" class="form-control me-2" type="search" placeholder="Search"
+                        aria-label="Search">
+                    <button class="btn btn-outline-light btn-search" type="button" onclick="searchItems()">Search</button>
+                </form>
+
+                <span class="navbar-text me-3">
+                    Welcome, User <span id="userId"></span>
+                </span>
+                <button class="btn btn-outline-light btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="conflicts-banner">
+        <a href="/public/conflictHistory.html">View All Conflicts</a>
+    </div>
+
+    <div class="container mt-4">
+        <div id="itemList" class="row row-cols-1 row-cols-md-3 g-4">
+            <!-- Items will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Get the user ID from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            // Redirect to login page if user ID is not found
+            window.location.href = '/login.html';
+        }
+        document.getElementById('userId').textContent = userId;
+
+        function fetchItems() {
+            fetch('/listAll')
+                .then(response => response.json())
+                .then(items => {
+                    const itemList = document.getElementById('itemList');
+                    itemList.innerHTML = ''; // Clear existing items
+                    items.forEach(item => {
+                        const itemElement = createItemElement(item);
+                        itemList.appendChild(itemElement);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Function to navigate to checkout page
+        function goToCheckout(itemId) {
+            window.location.href = `/public/checkout.html?id=${itemId}`;
+        }
+
+        function createItemElement(item) {
+            const col = document.createElement('div');
+            col.className = 'col';
+
+            let buttonHtml;
+
+            // Display Buy button or Not Available based on item status
+            if (item.itemStatus === 0) {
+                buttonHtml = `<button class="btn btn-success" onclick="goToCheckout(${item.ID})">Buy</button>`;
+            } else {
+                buttonHtml = `<button class="btn btn-secondary" disabled>Not Available</button>`;
+            }
+
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="/${item.file}" class="card-img-top" alt="${item.name}">
+                    <div class="card-body">
+                        <h5 class="card-title">${item.name}</h5>
+                        <p class="card-text">${item.description}</p>
+                        <p class="price-text">Price: $${item.price}</p> <!-- Highlight the price -->
+                        <p class="card-text">Seller: ${item.userName}</p>
+                        <div class="btn-container">
+                            <button class="btn btn-primary me-2" onclick="viewItem(${item.ID})">View Details</button>
+                            ${buttonHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+            return col;
+        }
+
+        function searchItems() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                // Redirect to search results page, with search term as query parameter
+                window.location.href = `/public/searchResults.html?query=${encodeURIComponent(query)}`;
+            }
+        }
+
+        // Function to navigate to item detail page
+        function viewItem(itemId) {
+            window.location.href = `/public/itemDetail.html?id=${itemId}`;
+        }
+
+        function getStatusText(status) {
+            const statusTexts = ['Available', 'Pending Payment', 'Sold', 'Complete', 'Argument'];
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function logout() {
+            window.location.href = '/public/index.html';
+        }
+
+        // Fetch items when the page loads
+        fetchItems();
+    </script>
+</body>
+
+</html>

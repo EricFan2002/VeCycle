@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+
+        /* Video Background */
+        #bgVideo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            min-width: 100%;
+            min-height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        /* Add a dark overlay to the video */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+
+        /* Centered form styling */
+        .form-signin {
+            z-index: 1;
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            background-color: rgba(255, 255, 255, 0.75); /* Adjust transparency with the last value */
+            border-radius: 10px;
+            margin: auto;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-header img {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .form-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0;
+        }
+
+        .form-header p {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+
+        .text-muted {
+            font-size: 0.875rem;
+        }
+
+        .form-floating + .form-floating {
+            margin-top: 15px; /* Add space between input fields */
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Video background -->
+    <video autoplay muted loop id="bgVideo">
+        <source src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+
+    <!-- Overlay for video to darken -->
+    <div class="overlay"></div>
+
+    <main class="d-flex align-items-center justify-content-center vh-100">
+        <div class="form-signin">
+            <form id="loginForm">
+                <div class="form-header">
+                    <img src="logo.png.png" alt="">
+                    <h1 class="h3 mb-3 fw-normal">Welcome Back</h1>
+                    <p>Please sign in to continue</p>
+                </div>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="floatingInput" placeholder="Username" required>
+                    <label for="floatingInput">Username</label>
+                </div>
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="floatingPassword" placeholder="Password" required>
+                    <label for="floatingPassword">Password</label>
+                </div>
+
+                <button class="w-100 btn btn-lg btn-primary mt-3" type="submit">Sign in</button>
+                <p class="mt-5 mb-3 text-muted">&copy; by Eric, Alan, SunnyRay, Tianhe and Syntaxa</p>
+            </form>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('floatingInput').value;
+            const password = document.getElementById('floatingPassword').value;
+
+            fetch('/login?user=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.userID) {
+                        localStorage.setItem('userId', data.userID);
+                        window.location.href = '/public/list.html';
+                    } else {
+                        alert('Login failed: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+        });
+    </script>
+</body>
+
+</html>

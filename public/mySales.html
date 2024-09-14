@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Sales</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        }
+
+        .card {
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card-text {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        .card-img-top {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .btn {
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .price-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ff5722;
+        }
+
+        .bg-blue {
+            background-color: #007bff;
+            height: 100px;
+        }
+
+        .navbar a,
+        .navbar-text {
+            color: white !important;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand span {
+            margin-left: 10px;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg bg-blue">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/public/list.html">
+                <img src="logo.png.png" alt="Logo" class="logo">
+                <span>VeCyCle</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <span class="navbar-text me-3">
+                    Welcome, User <span id="userId"></span>
+                </span>
+                <button class="btn btn-outline-light btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">My Sales</h1>
+        <div id="salesList" class="row row-cols-1 row-cols-md-3 g-4">
+            <!-- Sales items will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Get the user ID from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            window.location.href = '/login.html';
+        }
+        document.getElementById('userId').textContent = userId;
+
+        // Function to get the item status text based on the status code
+        function getStatusText(status) {
+            const statusTexts = ['Available', 'Pending Payment', 'Sold', 'Complete', 'Argument'];
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function fetchSales() {
+            fetch(`/listMySold?userID=${userId}`)
+                .then(response => response.json())
+                .then(items => {
+                    const salesList = document.getElementById('salesList');
+                    salesList.innerHTML = '';
+                    items.forEach(item => {
+                        const itemElement = createSalesElement(item);
+                        salesList.appendChild(itemElement);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function createSalesElement(item) {
+            const col = document.createElement('div');
+            col.className = 'col';
+
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="/${item.file}" class="card-img-top" alt="${item.name}">
+                    <div class="card-body">
+                        <h5 class="card-title">${item.name}</h5>
+                        <p class="card-text">${item.description}</p>
+                        <p class="price-text">Price: $${item.price}</p>
+                        <p class="card-text">Buyer: ${item.buyerName}</p>
+                        <p class="card-text"><strong>Status:</strong> ${getStatusText(item.itemStatus)}</p>
+                    </div>
+                </div>
+            `;
+            return col;
+        }
+
+        function logout() {
+            window.location.href = '/public/index.html';
+        }
+
+        fetchSales();
+    </script>
+</body>
+
+</html>

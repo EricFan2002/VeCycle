@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conflict Resolution Center</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            /* 半透明黑色背景 */
+            color: #fff;
+            display: none;
+            /* 初始隐藏 */
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            z-index: 9999;
+            /* 确保遮罩层在最上面 */
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .chat-container,
+        .judge-panel {
+            height: calc(100vh - 76px);
+            /* Adjusted for better fit */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages,
+        .judge-comments {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
+
+        .chat-input,
+        .judge-input {
+            padding: 1rem 0;
+        }
+
+        .judge-comment,
+        .buyer-message,
+        .seller-message,
+        .system-message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+        }
+
+        .judge-comment {
+            background-color: #f1f3f5;
+        }
+
+        .buyer-message {
+            background-color: #e7f3ff;
+        }
+
+        .seller-message {
+            background-color: #fff3cd;
+        }
+
+        .system-message {
+            background-color: #e7fff3;
+            font-style: italic;
+        }
+
+        .support-btn-buyer,
+        .support-btn-seller {
+            margin-top: 0.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .support-btn-buyer {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .support-btn-seller {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 0.75rem;
+            border-radius: 0.25rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .clause-nav {
+            background-color: #e9ecef;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .clause-content {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+        }
+
+        /* New styles for better spacing and readability */
+        .chat-messages>div,
+        .judge-comments>div {
+            margin-bottom: 1rem;
+        }
+
+        .chat-messages strong,
+        .judge-comments strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .chat-messages p,
+        .judge-comments p {
+            margin-bottom: 0.5rem;
+        }
+
+        #userIdDisplay {
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+
+        .role-specific {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-overlay" style="display: none;">Loading...</div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Conflict Resolution Center</a>
+            <span id="userIdDisplay" class="navbar-text"></span>
+            <span id="userRoleDisplay" class="navbar-text me-2"></span>
+            <button class="btn btn-outline-primary" onclick="location.href='/public/list.html'">Back to Main</button>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- Chat History -->
+            <div class="col-md-8">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Chat messages will be dynamically inserted here -->
+                    </div>
+                    <div class="chat-input role-specific" id="buyerSellerInput">
+                        <form id="chatForm">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="messageInput"
+                                    placeholder="Type your message...">
+                                <button class="btn btn-primary" type="submit">Send</button>
+                            </div>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="photoInput" accept="image/*">
+                                <button class="btn btn-secondary" type="button" onclick="uploadPhoto()">Upload
+                                    Photo</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Judges Panel -->
+            <div class="col-md-4">
+                <div class="judge-panel">
+                    <h4 class="mb-3">Judges' Panel</h4>
+                    <div class="clause-nav" id="clauseNav">
+                        <!-- Clause navigation will be inserted here -->
+                    </div>
+                    <div class="clause-content" id="clauseContent">
+                        <!-- Current clause content will be inserted here -->
+                    </div>
+                    <div class="judge-comments" id="judgeComments">
+                        <!-- Judges' comments for the current clause will be inserted here -->
+                    </div>
+                    <div class="judge-input role-specific" id="judgeInput">
+                        <form id="judgeForm">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="judgeInputText"
+                                    placeholder="Type your comment...">
+                                <button class="btn btn-primary" type="submit">Comment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let itemId;
+        let itemDetails;
+        let disputeInfo;
+        let currentClause = 0;
+        let userId = localStorage.getItem('userId');
+        let userRole = '';
+
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        async function fetchItemDetails() {
+            const response = await fetch(`/itemDetail?id=${itemId}`);
+            itemDetails = await response.json();
+            displayItemDetails();
+        }
+
+        async function fetchDisputeInfo() {
+            const response = await fetch(`/getDisputeInfo?itemID=${itemId}`);
+            disputeInfo = await response.json();
+            displayDisputeInfo();
+        }
+
+        function displayItemDetails() {
+            // Display item details in the UI
+            console.log('Item Details:', itemDetails);
+        }
+
+        function displayDisputeInfo() {
+            displayChatHistory();
+            displayClauseNav();
+            displayClauseContent();
+            displayJudgeComments();
+            setupJudgeForm();
+            checkDisputeStatus();
+        }
+
+        function checkDisputeStatus() {
+            const isResolved = disputeInfo.status === '1';
+            const chatInput = document.getElementById('buyerSellerInput');
+            const judgeInput = document.getElementById('judgeInput');
+            const resolvedMessage = document.createElement('div');
+            resolvedMessage.className = 'resolved-message';
+            resolvedMessage.textContent = 'This dispute has been resolved.';
+
+            if (isResolved) {
+                chatInput.style.display = 'none';
+                judgeInput.style.display = 'none';
+                document.querySelector('.chat-container').insertBefore(resolvedMessage, chatInput);
+                document.querySelector('.judge-panel').insertBefore(resolvedMessage.cloneNode(true), judgeInput);
+                disableJudgeButtons();
+            } else {
+                const existingMessages = document.querySelectorAll('.resolved-message');
+                existingMessages.forEach(msg => msg.remove());
+            }
+        }
+
+        function disableJudgeButtons() {
+            const judgeButtons = document.querySelectorAll('.support-btn-buyer, .support-btn-seller');
+            judgeButtons.forEach(button => {
+                button.disabled = true;
+                button.classList.add('btn-secondary');
+                button.classList.remove('btn-outline-primary', 'btn-outline-warning');
+            });
+        }
+
+
+        function displayJudgeComments() {
+            const judgeComments = document.getElementById('judgeComments');
+            const currentJudgeConversation = disputeInfo.JUDGES_CONVERSATION[currentClause];
+            const isResolved = disputeInfo.status === '1';
+
+            judgeComments.innerHTML = disputeInfo.judge_ids.map((judgeIndex, index) => {
+                const judgeId = disputeInfo[`judge_id_${judgeIndex}`];
+                const judgement = currentJudgeConversation[judgeId] || {};
+
+                return `
+                    <div class="judge-comment">
+                        <strong>Judge ${index + 1} (ID: ${judgeId}):</strong>
+                        <p>${judgement.message || 'No comment yet'}</p>
+                        <p>Verdict: ${judgement.verdict || 'Not yet decided'}</p>
+                        ${parseInt(userId) === parseInt(judgeId) && !isResolved ? `
+                            <button class="btn btn-sm btn-outline-primary support-btn-buyer" onclick="submitVerdict(${judgeId}, 'Buyer')">Support Buyer</button>
+                            <button class="btn btn-sm btn-outline-warning support-btn-seller" onclick="submitVerdict(${judgeId}, 'Seller')">Support Seller</button>
+                        ` : `
+                            <button class="btn btn-sm btn-outline-secondary" disabled>Support Buyer</button>
+                            <button class="btn btn-sm btn-outline-secondary" disabled>Support Seller</button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showLoading() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+
+        function endLoading() {
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+
+
+        async function submitVerdict(judgeId, verdict) {
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            try {
+                showLoading();
+                const response = await fetch('/addNewJudgeVerdict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        itemID: itemId,
+                        userID: judgeId,
+                        termIndex: currentClause,
+                        verdict: verdict
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit verdict');
+                }
+
+                await fetchDisputeInfo();
+                endLoading()
+                location.reload()
+            } catch (error) {
+                console.error('Error submitting verdict:', error);
+                alert('Failed to submit verdict. Please try again.');
+                endLoading()
+            }
+        }
+
+        document.getElementById('judgeForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            const judgeInput = document.getElementById('judgeInputText');
+            const comment = judgeInput.value.trim();
+            if (comment) {
+                try {
+                    const response = await fetch('/addNewJudgeMessage', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            itemID: itemId,
+                            userID: parseInt(userId),
+                            termIndex: currentClause,
+                            msg: comment
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to submit comment');
+                    }
+
+                    judgeInput.value = '';
+                    await fetchDisputeInfo();
+                } catch (error) {
+                    console.error('Error submitting comment:', error);
+                    alert('Failed to submit comment. Please try again.');
+                }
+            }
+        });
+
+        async function uploadPhoto() {
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            const photoInput = document.getElementById('photoInput');
+            const file = photoInput.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('photo', file);
+
+                const response = await fetch('/upload_photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await sendMessage(`Uploaded a photo: ${result.filename}`, result.filename);
+                    photoInput.value = ''; // Clear the file input
+                } else {
+                    alert('Failed to upload photo');
+                }
+            }
+        }
+
+
+
+
+
+
+        function displayChatHistory() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = disputeInfo.BUYER_SELLER_CONVERSATION.map(msg => {
+                let photoHtml = '';
+                if (msg.MSG.includes('Uploaded a photo:')) {
+                    const photoPath = msg.MSG.split('Uploaded a photo:')[1].trim();
+                    photoHtml = `<br><img src="${photoPath.replace('@', '')}" class="uploaded-image" alt="Uploaded image">`;
+                    msg.MSG = msg.MSG.replace(photoPath, '');
+                } else if (msg.Photo) {
+                    photoHtml = `<br><img src="${msg.Photo.replace('@', '')}" class="uploaded-image" alt="Uploaded image">`;
+                }
+                return `
+                    <div class="${msg.Name.toLowerCase()}-message">
+                        <strong>${msg.Name}:</strong> ${msg.MSG}
+                        ${photoHtml}
+                    </div>
+                `;
+            }).join('');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function displayClauseNav() {
+            const clauseNav = document.getElementById('clauseNav');
+            clauseNav.innerHTML = disputeInfo.JUDGES_CONVERSATION.map((_, index) => `
+                <button class="btn btn-sm ${currentClause === index ? 'btn-primary' : 'btn-outline-primary'} me-2" 
+                        onclick="switchClause(${index})">
+                    Clause ${index + 1}
+                </button>
+            `).join('');
+        }
+
+        function displayClauseContent() {
+            const clauseContent = document.getElementById('clauseContent');
+            const currentTerm = itemDetails.terms[currentClause];
+            clauseContent.innerHTML = `
+                <h5>${currentTerm.termName}</h5>
+                <p>${currentTerm.termConditions}</p>
+                <p>Compensation: ${currentTerm.termCompensation}%</p>
+            `;
+        }
+
+
+        function setupJudgeForm() {
+            const judgeForm = document.getElementById('judgeForm');
+            const isJudge = disputeInfo.judge_ids.some(index => disputeInfo[`judge_id_${index}`] === userId);
+            judgeForm.style.display = isJudge ? 'block' : 'none';
+        }
+
+
+        function switchClause(index) {
+            currentClause = index;
+            displayClauseNav();
+            displayClauseContent();
+            displayJudgeComments();
+        }
+
+        document.getElementById('chatForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            if (message) {
+                await sendMessage(message);
+                messageInput.value = '';
+            }
+        });
+
+        async function uploadPhoto() {
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            const photoInput = document.getElementById('photoInput');
+            const file = photoInput.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('photo', file);
+
+                const response = await fetch('/upload_photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await sendMessage(`Uploaded a photo: ${result.filename}`, result.filename);
+                    photoInput.value = ''; // Clear the file input
+                } else {
+                    alert('Failed to upload photo');
+                }
+            }
+        }
+
+
+
+        async function determineUserRole() {
+            // Determine the user's role based on the disputeInfo
+            if (disputeInfo.buyer_id === userId) {
+                userRole = 'Buyer';
+            } else if (disputeInfo.seller_id === userId) {
+                userRole = 'Seller';
+            } else if (disputeInfo.judge_ids.some(index => disputeInfo[`judge_id_${index}`] === userId)) {
+                userRole = 'Judge';
+            } else {
+                userRole = 'Observer';
+            }
+
+            // Display user role
+            const userRoleDisplay = document.getElementById('userRoleDisplay');
+            userRoleDisplay.textContent = `Role: ${userRole}`;
+
+            // Show/hide role-specific elements
+            const buyerSellerInput = document.getElementById('buyerSellerInput');
+            const judgeInput = document.getElementById('judgeInput');
+
+            buyerSellerInput.style.display = (userRole === 'Buyer' || userRole === 'Seller') ? 'block' : 'none';
+            judgeInput.style.display = (userRole === 'Judge') ? 'block' : 'none';
+
+            // Disable inputs if the dispute is resolved
+            if (disputeInfo.status == '1') {
+                buyerSellerInput.style.display = 'none';
+                judgeInput.style.display = 'none';
+                const resolvedMessage = document.createElement('div');
+                resolvedMessage.className = 'alert alert-info mt-3';
+                resolvedMessage.textContent = 'This dispute has been resolved.';
+                document.querySelector('.chat-container').appendChild(resolvedMessage);
+                document.querySelector('.judge-panel').appendChild(resolvedMessage.cloneNode(true));
+            }
+        }
+
+        async function sendMessage(message, photo = null) {
+            await fetch('/addBuyerSellerConversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    itemID: itemId,
+                    name: userRole, // Use the determined user role
+                    msg: message,
+                    photo: photo
+                }),
+            });
+            await fetchDisputeInfo();
+        }
+
+        async function uploadPhoto() {
+            const photoInput = document.getElementById('photoInput');
+            const file = photoInput.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('photo', file);
+
+                const response = await fetch('/upload_photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await sendMessage(`Uploaded a photo: ${result.filename}`, result.filename);
+                    photoInput.value = ''; // Clear the file input
+                } else {
+                    alert('Failed to upload photo');
+                }
+            }
+        }
+
+        document.getElementById('judgeForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const judgeInput = document.getElementById('judgeInput');
+            const comment = judgeInput.value.trim();
+            if (comment) {
+                await fetch('/addNewJudgeMessage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        itemID: itemId,
+                        userID: parseInt(userId),
+                        termIndex: currentClause,
+                        msg: comment
+                    }),
+                });
+                judgeInput.value = '';
+                await fetchDisputeInfo();
+            }
+        });
+
+        async function init() {
+            itemId = getUrlParameter('itemID');
+            if (!itemId) {
+                alert('No item ID provided');
+                return;
+            }
+
+            // Display user ID
+            const userIdDisplay = document.getElementById('userIdDisplay');
+            userIdDisplay.textContent = `User ID: ${userId}`;
+
+            await fetchItemDetails();
+            await fetchDisputeInfo();
+            await determineUserRole();
+
+            // Set up event listeners after roles are determined
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            const chatForm = document.getElementById('chatForm');
+            const judgeForm = document.getElementById('judgeForm');
+
+            if (userRole === 'Buyer' || userRole === 'Seller') {
+                // chatForm.addEventListener('submit', handleChatSubmit);
+            }
+
+            if (userRole === 'Judge') {
+                judgeForm.addEventListener('submit', handleJudgeSubmit);
+            }
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            if (message) {
+                await sendMessage(message);
+                messageInput.value = '';
+            }
+        }
+
+        async function handleJudgeSubmit(e) {
+            e.preventDefault();
+            if (disputeInfo.status === '1') {
+                alert('This dispute has already been resolved.');
+                return;
+            }
+
+            const judgeInput = document.getElementById('judgeInputText');
+            const comment = judgeInput.value.trim();
+            if (comment) {
+                try {
+                    const response = await fetch('/addNewJudgeMessage', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            itemID: itemId,
+                            userID: parseInt(userId),
+                            termIndex: currentClause,
+                            msg: comment
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to submit comment');
+                    }
+
+                    judgeInput.value = '';
+                    await fetchDisputeInfo();
+                } catch (error) {
+                    console.error('Error submitting comment:', error);
+                    alert('Failed to submit comment. Please try again.');
+                }
+            }
+        }
+
+        init();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

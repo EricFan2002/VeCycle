@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Purchases</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%); /* 渐变背景色 */
+            overflow-y: auto; /* 保证页面可滚动 */
+        }
+        .card-img-top {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        /* 悬浮效果：添加阴影和缩放 */
+        .card {
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .card:hover {
+            transform: scale(1.03); /* 鼠标悬停时放大1.05倍 */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* 添加阴影 */
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <!-- Modify navbar-brand to include both logo and text in one clickable button -->
+            <a class="navbar-brand d-flex align-items-center" href="/public/list.html">
+                <!-- Assuming the logo is stored in /public/logo.png -->
+                <img src="logo.png.png" alt="Logo" width="40" height="40" class="d-inline-block align-text-top me-2">
+                <span>VeCyCle</span>
+            </a>
+            <div class="navbar-text me-2">
+                Welcome, User <span id="userId"></span>
+            </div>
+            <button class="btn btn-outline-primary" onclick="location.href='/public/list.html'">Back to Main</button>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">My Purchases</h1>
+        <div id="purchaseList" class="row row-cols-1 row-cols-md-3 g-4">
+            <!-- Purchased items will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Get the user ID from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            // Redirect to login page if user ID is not found
+            window.location.href = '/login.html';
+        }
+        document.getElementById('userId').textContent = userId;
+
+        function fetchPurchases() {
+            fetch(`/checkMyBuy?userID=${userId}`)
+                .then(response => response.json())
+                .then(items => {
+                    const purchaseList = document.getElementById('purchaseList');
+                    purchaseList.innerHTML = ''; // Clear existing items
+                    items.forEach(item => {
+                        const itemElement = createPurchaseElement(item);
+                        purchaseList.appendChild(itemElement);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function createPurchaseElement(item) {
+            const col = document.createElement('div');
+            col.className = 'col';
+
+            let buttons = ''; // 动态生成按钮内容
+
+            if (item.itemStatus === 3) {
+                // 状态为 3 时显示 Completed
+                buttons = `<button class="btn btn-secondary mt-2" disabled>Completed</button>`;
+            } else {
+                // 其他状态显示确认购买和争议按钮
+                buttons = `
+                    ${item.itemStatus  == 2 ? `<button onclick="confirmPurchase(${item.ID})" class="btn btn-success mt-2" >Confirm Purchase</button>` : ""}
+                    ${item.itemStatus  == 2 ? `<button onclick="arguePurchase(${item.ID})" class="btn btn-warning mt-2">Argue Quality</button>`: ""}
+                `;
+            }
+
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="/${item.file}" class="card-img-top" alt="${item.name}">
+                    <div class="card-body">
+                        <h5 class="card-title">${item.name}</h5>
+                        <p class="card-text">${item.description}</p>
+                        <p class="card-text">Price: $${item.price}</p>
+                        <p class="card-text">Seller: ${item.userName}</p>
+                        <p class="card-text">Status: ${getStatusText(item.itemStatus)}</p>
+                        ${buttons}
+                    </div>
+                </div>
+            `;
+            return col;
+        }
+
+
+        function getStatusText(status) {
+            // 0 Listed 1 Pending Payment 2 Paied 3 Success 4 Dispute
+            const statusTexts = ['Available', 'Pending Payment', 'Sold', 'Complete', 'Argument'];
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function confirmPurchase(itemId) {
+            fetch('/sold_confirm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ itemID: itemId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    fetchPurchases(); // 刷新购买列表
+                } else {
+                    alert('Confirmation failed: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function arguePurchase(itemId) {
+            fetch(`/argument?itemID=${itemId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.result.status === 'success') {
+                        console.log('Dispute initiated successfully:', data.result);
+                        window.location.href = data.redirect;
+                    } else {
+                        console.error('Error:', data.result.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Fetch purchases when the page loads
+        fetchPurchases();
+    </script>
+</body>
+
+</html>

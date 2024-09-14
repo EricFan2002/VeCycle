@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Details</title>
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Ensure the body is scrollable with the content */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow-y: auto; /* Enable vertical scrolling */
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%); /* 设置渐变背景色 */
+        }
+
+        /* Container needs to have a relative position to stay on top */
+        .container {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            max-width: 800px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        /* Explicitly remove shadows and borders */
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.6s ease-in-out;
+            box-shadow: none !important; /* Remove shadow */
+            border: none !important; /* Remove any borders */
+            background-image: none !important; /* Remove any background images that could create shadows */
+            outline: none !important; /* Ensure no outlines are applied */
+        }
+
+        .card.reveal {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Ensure image is fully visible while maintaining aspect ratio */
+        .card-img-top {
+            max-height: 300px;
+            object-fit: contain;
+            width: 100%;
+            transition: transform 0.3s ease;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+
+        /* Title font color set to black */
+        h1 {
+            color: black;
+            display: inline-block;
+            padding: 10px 20px;
+        }
+
+        .card-img-top:hover {
+            transform: scale(1.05);
+        }
+
+        /* Scrollable terms section with animations */
+        .term-item {
+            transition: all 0.4s ease-in-out;
+            opacity: 0;
+        }
+
+        .term-item.reveal {
+            opacity: 1;
+        }
+
+        /* Button styling */
+        .btn-primary {
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        /* Scrollable container */
+        .btn-container {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        
+        <div id="itemDetails" class="card">
+            <!-- 商品详情和条款内容会在这里展示 -->
+        </div>
+        <div class="btn-container mt-3">
+            <button class="btn btn-primary" onclick="goBack()">Go Back</button>
+        </div>
+    </div>
+
+    <script>
+        // 从URL中获取商品ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemId = urlParams.get('id');
+
+        // 根据商品ID获取商品详情
+        fetch(`/itemDetail?id=${itemId}`)
+            .then(response => response.json())
+            .then(item => {
+                const itemDetailsDiv = document.getElementById('itemDetails');
+                itemDetailsDiv.innerHTML = `
+                    <div class="card-body">
+                        <img src="/${item.file}" class="card-img-top mb-3" alt="${item.name}">
+                        <h5 class="card-title text-dark">${item.name}</h5>
+                        <p class="card-text text-dark">${item.description}</p>
+                        <p class="card-text text-dark">Price: $${item.price}</p>
+                        <p class="card-text text-dark">Seller: ${item.userName}</p>
+                        <p class="card-text text-dark">Status: ${getStatusText(item.itemStatus)}</p>
+                        <hr>
+                        <h5 class="card-title mt-4 text-dark">Terms and Conditions</h5>
+                        <div id="termsDetails"></div>
+                    </div>
+                `;
+
+                // 展示Terms详情
+                const termsDetailsDiv = document.getElementById('termsDetails');
+                if (item.terms && item.terms.length > 0) {
+                    item.terms.forEach(term => {
+                        const termElement = document.createElement('div');
+                        termElement.className = 'term-item mt-2';
+                        termElement.innerHTML = `
+                            <p class="text-dark"><strong>Term Name:</strong> ${term.termName}</p>
+                            <p class="text-dark"><strong>Conditions:</strong> ${term.termConditions}</p>
+                            <p class="text-dark"><strong>Compensation:</strong> ${term.termCompensation}%</p>
+                            <hr>
+                        `;
+                        termsDetailsDiv.appendChild(termElement);
+                    });
+
+                    revealTerms();
+                } else {
+                    termsDetailsDiv.innerHTML = '<p>No terms available for this item.</p>';
+                }
+
+                // Reveal the card once the item data is loaded
+                revealCard();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('itemDetails').innerHTML = '<p class="text-danger">Failed to load item details. Please try again later.</p>';
+            });
+
+        function getStatusText(status) {
+            const statusTexts = ['Available', 'Pending Payment', 'Sold', 'Shipped', 'Delivered'];
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        // Intersection Observer to reveal content when scrolled into view
+        function revealCard() {
+            const card = document.getElementById('itemDetails');
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        card.classList.add('reveal');
+                        observer.disconnect();
+                    }
+                });
+            });
+            observer.observe(card);
+        }
+
+        function revealTerms() {
+            const terms = document.querySelectorAll('.term-item');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('reveal');
+                    }
+                });
+            });
+
+            terms.forEach(term => {
+                observer.observe(term);
+            });
+        }
+    </script>
+</body>
+
+</html>
